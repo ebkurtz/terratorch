@@ -1,5 +1,5 @@
 #!/bin/bash
-# run_tests_lsf.sh
+# run_lsf_integrationtest.sh
 # Run each test (either file or individual test function) in separate LSF jobs with coverage + logs.
 
 set -euo pipefail
