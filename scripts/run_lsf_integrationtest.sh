@@ -5,13 +5,14 @@
 set -euo pipefail
 
 TEST_DIR="${TEST_DIR:-${1:-$(pwd)}}"
+TEST_FILE="${1:-${TEST_FILE:-integrationtests/test_base_set.py}}"
 LOG_DIR="$TEST_DIR/logs"
 COV_DIR="$TEST_DIR/.coverage_jobs"
 mkdir -p "$LOG_DIR" "$COV_DIR"
 
 
 all_tests=$(cd "$TEST_DIR" && \
-  pytest --collect-only -q integrationtests/test_base_set.py 2>/dev/null | \
+  pytest --collect-only -q "$TEST_FILE" 2>/dev/null | \
   grep -E '^integrationtests/test_base_set\.py::' || true)
 
 echo $all_tests
