@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-TEST_DIR="/dccstor/terratorch/users/rkie/gitco/terratorch.albcore"
+TEST_DIR="${TEST_DIR:-${1:-$(pwd)}}"
 LOG_DIR="$TEST_DIR/logs"
 COV_DIR="$TEST_DIR/.coverage_jobs"
 mkdir -p "$LOG_DIR" "$COV_DIR"
