@@ -5,6 +5,8 @@ from torchvision import transforms
 from PIL import Image
 import numpy as np
 import os
+import matplotlib.pyplot as plt
+
 
 class CopyPasteObjectDetectionDataset(Dataset):
     def __init__(
@@ -111,3 +113,30 @@ class CopyPasteObjectDetectionDataset(Dataset):
             "mask": mask,
             "labels": labels
         }
+
+
+def plot_predictions(images, targets, preds, max_items=4):
+    fig, axes = plt.subplots(1, max_items, figsize=(4 * max_items, 4))
+    if max_items == 1:
+        axes = [axes]
+
+    for i, ax in enumerate(axes):
+        img = images[i].detach().cpu().permute(1, 2, 0)
+        ax.imshow(img)
+        ax.axis("off")
+
+        for box in targets[i]["boxes"]:
+            x1, y1, x2, y2 = box.cpu()
+            ax.add_patch(plt.Rectangle(
+                (x1, y1), x2 - x1, y2 - y1,
+                fill=False, edgecolor="green", linewidth=2
+            ))
+
+        for box in preds[i]["boxes"]:
+            x1, y1, x2, y2 = box.cpu()
+            ax.add_patch(plt.Rectangle(
+                (x1, y1), x2 - x1, y2 - y1,
+                fill=False, edgecolor="red", linewidth=2
+            ))
+
+    return fig
