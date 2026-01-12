@@ -16,9 +16,8 @@ class TestGenericNonGeoSegmentationTortillaDataset:
     
     def test_missing_tortilla_file(self):
         command_list = ["fit", "-c", "tests/resources/tortilla/train_segmentation_missing.yaml"]
-        try:
+        with pytest.raises(Exception):
             _ = build_lightning_cli(command_list)
-        except Exception as e:
-            assert "Either provide tortilla_file OR all train/val/test roots" in str(e)
+   
 
         gc.collect()

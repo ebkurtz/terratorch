@@ -56,7 +56,7 @@ class GenericPixelWiseDataset(NonGeoDataset, ABC):
         temporal_channel_major: bool = False,
         reduce_zero_label: bool = False,
         tortilla_df: pd.DataFrame | None = None,
-        tortilla_indicies: list[Hashable] | None = None,
+        tortilla_indices: list[Hashable] | None = None,
     ) -> None:
         """Constructor
 
@@ -98,7 +98,7 @@ class GenericPixelWiseDataset(NonGeoDataset, ABC):
             reduce_zero_label (bool): Subtract 1 from all labels. Useful when labels start from 1 instead of the
                 expected 0. Defaults to False.
             tortilla_df (tortilla.DataFrame | None): Tortilla DataFrame to use for loading data. Defaults to None. If provided, data_root is ignored.
-            tortilla_indicies (list[Hashable] | None): List of indices to use from tortilla_df. Defaults to None, which uses all indices.
+            tortilla_indices (list[Hashable] | None): List of indices to use from tortilla_df. Defaults to None, which uses all indices.
         """
         super().__init__()
 
@@ -128,9 +128,10 @@ class GenericPixelWiseDataset(NonGeoDataset, ABC):
                 )
 
         self.tortilla_df = tortilla_df
-        self.tortilla_indicies = tortilla_indicies
-        if self.tortilla_df is not None and self.tortilla_indicies is None:
-            self.tortilla_indicies = self.tortilla_df.index.tolist()
+        if tortilla_indices is None and self.tortilla_df is not None:
+            self.tortilla_indices = self.tortilla_df.index.tolist()
+        else:
+            self.tortilla_indices = tortilla_indices
 
         if data_root is None and self.tortilla_df is None:
             msg = "Please provide either data_root or tortilla_df"
@@ -139,7 +140,7 @@ class GenericPixelWiseDataset(NonGeoDataset, ABC):
         self.image_files = []
         self.segmentation_mask_files = []
         if self.tortilla_df is not None:
-            for sample_index in self.tortilla_indicies:
+            for sample_index in self.tortilla_indices:
                 sample_data = self.tortilla_df.read(sample_index)
                 if isinstance(sample_data, pd.DataFrame):
                     for _, row in sample_data.iterrows():
