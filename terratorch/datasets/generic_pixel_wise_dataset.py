@@ -350,7 +350,7 @@ class GenericNonGeoSegmentationDataset(GenericPixelWiseDataset):
         expand_temporal_dimension: bool = False,
         reduce_zero_label: bool = False,
         tortilla_df: pd.DataFrame | None = None,
-        tortilla_indicies: list[Hashable] | None = None,
+        tortilla_indices: list[Hashable] | None = None,
     ) -> None:
         """See :class:`GenericPixelWiseDataset` for shared args.
 
@@ -379,7 +379,7 @@ class GenericNonGeoSegmentationDataset(GenericPixelWiseDataset):
             expand_temporal_dimension=expand_temporal_dimension,
             reduce_zero_label=reduce_zero_label,
             tortilla_df=tortilla_df,
-            tortilla_indicies=tortilla_indicies,
+            tortilla_indices=tortilla_indices,
         )
         self.num_classes = num_classes
         self.class_names = class_names

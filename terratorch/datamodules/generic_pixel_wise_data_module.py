@@ -259,7 +259,7 @@ class GenericNonGeoSegmentationDataModule(NonGeoDataModule):
                 expand_temporal_dimension=self.expand_temporal_dimension,
                 reduce_zero_label=self.reduce_zero_label,
                 tortilla_df=self.tortilla_df,
-                tortilla_indicies=self._get_tortilla_indicies(stage),
+                tortilla_indices=self._get_tortilla_indices(stage),
             )
         if stage in ["fit", "validate"]:
             self.val_dataset = self.dataset_class(
@@ -283,7 +283,7 @@ class GenericNonGeoSegmentationDataModule(NonGeoDataModule):
                 expand_temporal_dimension=self.expand_temporal_dimension,
                 reduce_zero_label=self.reduce_zero_label,
                 tortilla_df=self.tortilla_df,
-                tortilla_indicies=self._get_tortilla_indicies(stage),
+                tortilla_indices=self._get_tortilla_indices(stage),
             )
         if stage in ["test"]:
             self.test_dataset = self.dataset_class(
@@ -307,7 +307,7 @@ class GenericNonGeoSegmentationDataModule(NonGeoDataModule):
                 expand_temporal_dimension=self.expand_temporal_dimension,
                 reduce_zero_label=self.reduce_zero_label,
                 tortilla_df=self.tortilla_df,
-                tortilla_indicies=self._get_tortilla_indicies(stage),
+                tortilla_indices=self._get_tortilla_indices(stage),
             )
         if stage in ["predict"] and self.predict_root:
             self.predict_dataset = self.dataset_class(
