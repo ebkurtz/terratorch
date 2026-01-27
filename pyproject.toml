@@ -69,11 +69,13 @@ dependencies = [
   "scikit-learn>=1.3.2",
   "scikit-image",
   "pyarrow",
+  "rich"
 ]
 
 
 [project.entry-points."vllm.io_processor_plugins"]
 terratorch_segmentation = "terratorch.vllm.plugins.segmentation:register_segmentation_plugin"
+terratorch_tm_segmentation = "terratorch.vllm.plugins.segmentation:register_terramind_segmentation_plugin"
 
 [project.optional-dependencies]
 dev = [
