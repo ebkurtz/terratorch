@@ -54,4 +54,4 @@ jobs:
         run: pip list
       - name: Test with pytest
         run: |
-          pytest -s -v tests/test_tiled_inference.py
+          pytest -s -v tests
