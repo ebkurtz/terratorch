@@ -42,9 +42,9 @@ User responsibility: It is the sole responsibility of the user to verify that th
 The TerraTorch maintainers do not provide legal advice and are not liable for any misuse of third-party models.
 
 <hr>
-<a href="https://www.youtube.com/watch?v=CB3FKtmuPI8">
+<a href="https://youtu.be/LNKovSef5lU">
   <img src="https://upload.wikimedia.org/wikipedia/commons/4/42/YouTube_icon_%282013-2017%29.png" alt="YouTube" width="20">
-  Watch the latest recording on YouTube: Earth observation foundation models with Prithvi-EO-2.0 and TerraTorch
+  Video: Introduction to TerraTorch
   <img src="https://upload.wikimedia.org/wikipedia/commons/4/42/YouTube_icon_%282013-2017%29.png" alt="YouTube" width="20">
 </a>
 <hr>
@@ -100,11 +100,8 @@ To install as a developer (e.g. to extend the library):
 ```
 git clone https://github.com/terrastackai/terratorch.git
 cd terratorch
-pip install -r requirements_test.txt
-conda install -c conda-forge gdal
-pip install -e .
+pip install -e .[test]
 ```
-
 To install terratorch with partial (work in development) support for Weather Foundation Models, `pip install -e .[wxc]`, which currently works just for `Python >= 3.11`. 
 
 ## Documentation
@@ -118,7 +115,7 @@ Developers, check out the [architecture overview](https://terrastackai.github.io
 
 This project welcomes contributions and suggestions. Ways to contribute or get involved:
 
-- Join our [Discord](https://discord.gg/x8AWY8QQ)
+- Join our [Discord](https://discord.gg/vQXTNmrkTM)
 - Create an [Issue](https://github.com/terrastackai/terratorch/issues) (for bugs or feature requests)
 - Contribute via [PR](https://github.com/terrastackai/terratorch/pulls)
 - Join our [duoweekly](https://romeokienzler.medium.com/the-duoweekly-manifesto-eaa6c1f542c8) community calls taking place [Tuesdays 4:30 PM - 5 PM CEST](https://teams.microsoft.com/l/meetup-join/19%3ameeting_MWJhMThhMTMtMjc3MS00YjAyLWI3NTMtYTI0NDQ3NWY3ZGU2%40thread.v2/0?context=%7b%22Tid%22%3a%22fcf67057-50c9-4ad4-98f3-ffca64add9e9%22%2c%22Oid%22%3a%227f7ab87a-680c-4c93-acc5-fbd7ec80823a%22%7d) and [Thursdays 2:30 PM - 3 PM CEST](https://teams.microsoft.com/l/meetup-join/19%3ameeting_MWJhMThhMTMtMjc3MS00YjAyLWI3NTMtYTI0NDQ3NWY3ZGU2%40thread.v2/0?context=%7b%22Tid%22%3a%22fcf67057-50c9-4ad4-98f3-ffca64add9e9%22%2c%22Oid%22%3a%227f7ab87a-680c-4c93-acc5-fbd7ec80823a%22%7d).
@@ -133,7 +130,14 @@ It will sign the commit with your ID and the check will be met.
 
 ## Credits
 
-TerraTorch is supported by the EU’s Horizon Europe program under Grant Agreement number 101131841 and also received funding from the Swiss State Secretariat for Education, Research and Innovation (SERI) and the UK Research and Innovation (UKRI).
+<img src="assets/embed2scale_logo.svg"
+   alt="Embed2Scale"
+   height="62"
+   style="vertical-align: middle; margin-right: 6px;" />
+<strong>Embed2Scale.</strong>
+The embedding workflow integration and maintenance in TerraTorch are carried out as part of the Embed2Scale project
+(Earth Observation & Weather Data Federation with AI Embeddings), funded by the EU’s Horizon Europe programme
+(Grant Agreement No. 101131841), with additional support from SERI and UKRI.
 
 
 ## License

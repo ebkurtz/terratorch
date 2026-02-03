@@ -31,7 +31,6 @@ class UNetDecoder(nn.Module):
             msg = "channels should have the same length as embed_dim"
             raise ValueError(msg)
         super().__init__()
-        print(channels)
         self.decoder = UnetDecoder(
             encoder_channels=[embed_dim[0], *embed_dim],
             decoder_channels=channels,
@@ -46,4 +45,7 @@ class UNetDecoder(nn.Module):
     def forward(self, x: list[torch.Tensor]) -> torch.Tensor:
         # The first layer is ignored in the original UnetDecoder, so we need to duplicate the first layer
         x = [x[0].clone(), *x]
+        if torch.mps.is_available():
+            # Fix issue on MacBooks, see https://github.com/terrastackai/terratorch/issues/859
+            x = [e.contiguous() for e in x]
         return self.decoder(x)
