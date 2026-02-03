@@ -71,9 +71,19 @@ class CopyPasteObjectDetectionDataset(Dataset):
         return image, mask, bbox
 
     def __getitem__(self, idx):
-        image = self.base_dataset[idx]['image']
-        boxes = self.base_dataset[idx]['boxes']
-        labels = self.base_dataset[idx].get('labels', None)
+        item = self.base_dataset[idx]
+        
+        # Handle both dict and tuple returns
+        if isinstance(item, dict):
+            image = item['image']
+            boxes = item['boxes']
+            labels = item.get('labels', None)
+        else:  # tuple format (image, boxes) or (image, boxes, labels)
+            if len(item) == 2:
+                image, boxes = item
+                labels = None
+            else:
+                image, boxes, labels = item[:3]
 
         if isinstance(image, Image.Image):
             image = self.to_tensor(image)
@@ -100,14 +110,11 @@ class CopyPasteObjectDetectionDataset(Dataset):
                 obj = self._load_object()
                 image, mask, bbox = self._paste_object(image, mask, obj)
 
-
                 boxes = torch.cat([boxes, bbox.unsqueeze(0)], dim=0)
 
-
                 # assuming class 1 for pasted objects
-
-
-                labels = torch.cat([labels, torch.tensor([1], dtype=torch.long)], dim=0) 
+                if labels is not None:
+                    labels = torch.cat([labels, torch.tensor([1], dtype=torch.long)], dim=0)
 
         return {
             "image": image.float(),
