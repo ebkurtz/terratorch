@@ -99,7 +99,7 @@ class EmbeddingGenerationTask(TerraTorchTask):
                         "remove_cls_token": self.has_cls,
                     }
 
-                    if model_args.get("backbone_use_temporal", False) and model_args.get("backbone_temporal_pooling", 'keep') == "keep":
+                    if model_args.get("backbone_use_temporal", False) and model_args.get("backbone_temporal_pooling", 'mean') == "keep":
                         neck_cfg["temporal_inputs"] = True
 
                     model_args["necks"].append(neck_cfg)
@@ -121,7 +121,7 @@ class EmbeddingGenerationTask(TerraTorchTask):
                         "indices": self.embedding_indices,
                         "drop_cls": has_cls
                     }
-                if model_args.get("backbone_use_temporal", False) and model_args.get("backbone_temporal_pooling",'keep') == "keep":
+                if model_args.get("backbone_use_temporal", False) and model_args.get("backbone_temporal_pooling",'mean') == "keep":
                     neck_cfg["temporal_inputs"] = True
                 model_args["necks"].append(neck_cfg)
 
