@@ -55,7 +55,7 @@ class GenericMultimodalDataset(NonGeoDataset, ABC):
         label_data_root: Path | str | list[Path | str] | None = None,
         image_grep: dict[str, str] | None = "*",
         label_grep: str | None = "*",
-        subdir_prefix: str | None = None,
+        prefix: str | None = "*",
         split: Path | None = None,
         image_modalities: list[str] | None = None,
         rgb_indices: dict[str, list[int]] | None = None,
@@ -89,7 +89,7 @@ class GenericMultimodalDataset(NonGeoDataset, ABC):
                 images, with modalities as keys. Defaults to "*". Ignored when allow_substring_file_names is False.
             label_grep (str, optional): Regular expression appended to label_data_root to find labels or mask files.
                 Defaults to "*". Ignored when allow_substring_file_names is False.
-            subdir_prefix (str, optional): Subdirectory prefix in case of data in subdirs (e.g. "part-xxx). Defaults to None.
+             prefix (str, optional): Prefix for filenames and/ or in case of data in subdirs (e.g. "part-xxx). Defaults to "*".
             split (Path, optional): Path to file containing samples prefixes to be used for this split.
                 The file can be a csv/parquet file with the prefixes in the index or a txt file with new-line separated
                 sample prefixes. File names must be exact matches if allow_substring_file_names is False. Otherwise,
@@ -152,17 +152,7 @@ class GenericMultimodalDataset(NonGeoDataset, ABC):
         # Default behaviour (no subdirs)
         self.subdir_data = False
         self.part_dirs = None
-
-        if subdir_prefix is not None:
-            self.subdir_data = True
-
-            # For each modality, list sorted subdirs matching the prefix (e.g. "part-*"), or [] if not a dir.
-            self.part_dirs = {
-                m:
-                    sorted(data_root[m].glob(f"{subdir_prefix}*"))
-                    if data_root[m].is_dir() else []
-                for m in self.modalities
-            }
+        self.prefix = prefix
 
         self.constant_scale = constant_scale or {}
         self.no_data_replace = no_data_replace
@@ -215,22 +205,23 @@ class GenericMultimodalDataset(NonGeoDataset, ABC):
         else:
             image_files = {}
             for m, m_paths in data_root.items():
-                if self.subdir_data and self.part_dirs is not None:
-                    image_files[m] = []
-                    for d in self.part_dirs[m]:
-                        pattern = os.path.join(d, "*" + image_grep[m])
-                        image_files[m].extend(glob.glob(pattern))
-                else:
-                    image_files[m] = sorted(glob.glob(os.path.join(m_paths, '*' + image_grep[m])))
+                image_files[m] = sorted(glob.glob(os.path.join(m_paths, self.prefix + '*' + image_grep[m])))
                 if len(image_files[m]) > 10_000:
                     warnings.warn("Found large data folder, consider providing split files to speed up dataset build.")
 
             def get_file_id(file_name, mod):
-                glob_as_regex = '^(.*?)' + ''.join(re.escape(ch)for ch in image_grep[mod].strip('*')) + '$'
-                stem = re.match(glob_as_regex, os.path.basename(file_name)).group(1)
+                base = os.path.basename(file_name)
+                parent = os.path.basename(os.path.dirname(file_name))
+
+                glob_as_regex = '^(.*?)' + ''.join(re.escape(ch) for ch in image_grep[mod].strip('*')) + '$'
+                stem = re.match(glob_as_regex, base).group(1)
+
                 if "." not in image_grep[mod] and allow_substring_file_names:
-                    # Remove file extensions if no extension in image_grep
                     stem = os.path.splitext(stem)[0]
+
+                if "/" in self.prefix:
+                    return f"{parent}/{stem}"
+
                 return stem
 
             if allow_missing_modalities:
@@ -275,24 +266,6 @@ class GenericMultimodalDataset(NonGeoDataset, ABC):
             sample = {}
             # Iterate over all modalities
             for m, m_path in data_root.items():
-                if self.subdir_data and self.part_dirs is not None:
-                    suffix = image_grep[m].strip("*")
-                    found = False
-                    # exact filename check
-                    for sub_dir in self.part_dirs[m]:
-                        candidate = os.path.join(sub_dir, file + suffix)
-                        if os.path.exists(candidate):
-                            sample[m] = candidate
-                            found = True
-                            break
-                    # fallback: glob search
-                    if not found:
-                        for sub_dir in self.part_dirs[m]:
-                            pattern = os.path.join(sub_dir, file + image_grep[m])
-                            matches = glob.glob(pattern)
-                            if matches:
-                                sample[m] = matches[-1]
-                                break
                 if isinstance(m_path, pd.DataFrame):
                     # Add tabular data to sample
                     sample[m] = m_path.loc[file].values
