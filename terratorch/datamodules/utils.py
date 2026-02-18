@@ -71,6 +71,7 @@ def wrap_in_compose_is_list(transform_list):
     - Already instantiated transform objects
     - YAML config dicts with "class_path" and "init_args"
     - Already composed transforms (returns as-is)
+    - Mixed lists containing both instantiated transforms and dict configs
 
     Args:
         transform_list: List of transforms, config dicts, or a single transform/Compose object
@@ -87,11 +88,22 @@ def wrap_in_compose_is_list(transform_list):
         # Convert any dict configs to actual transform objects
         instantiated_transforms = []
         for transform in transform_list:
-            if isinstance(transform, dict) and "class_path" in transform:
-                # This is a YAML config dict, instantiate it
-                instantiated_transforms.append(instantiate_transform_from_dict(transform))
+            if isinstance(transform, dict):
+                # This could be a YAML config dict or a plain dict
+                if "class_path" in transform:
+                    # YAML config dict with class_path, instantiate it
+                    instantiated_transforms.append(instantiate_transform_from_dict(transform))
+                else:
+                    # Plain dict without class_path - this is unexpected and likely an error
+                    # We require explicit class_path for safety and clarity
+                    msg = f"Unexpected dict in transform list without 'class_path': {transform}"
+                    raise ValueError(msg)
+            elif isinstance(transform, A.Compose):
+                # Already a Compose object, unwrap it
+                # This handles cases where a Compose is nested in a list
+                instantiated_transforms.extend(transform.transforms)
             else:
-                # Already an instantiated transform
+                # Already an instantiated transform object (BasicTransform subclass)
                 instantiated_transforms.append(transform)
 
         # Wrap in Compose with check_shapes=False for multitemporal case
