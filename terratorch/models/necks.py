@@ -111,14 +111,13 @@ class AggregateTokens(Neck):
 
             if feat.dim() == 4:
                 # Assuming spatial grid, flattening spatial dimension
-                B  = feat.shape[0]
-                feat = feat.reshape(B, -1, self.latent_dim[i])
+                B, C, H, W = feat.shape
+                feat = rearrange(feat, "b c h w -> b (h w) c")
 
-            elif feat.dim() == 5:
+            elif feat.dim() == 5: # This is fallback for self.temporal_inputs not set, but we know that it is temporal shape
                 # Assuming spatiotemporal grid, flattening spatial dimension
-                B = feat.shape[0]
-                T = feat.shape[2]
-                feat = feat.reshape(B, -1, T, self.latent_dim[i])
+                B, C, T, H, W = feat.shape
+                feat = rearrange(feat, "b c t h w -> b (h w) t c")
 
             if self.drop_cls:
                 feat = feat[..., 1:, :]
