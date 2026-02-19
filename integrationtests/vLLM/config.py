@@ -42,9 +42,9 @@ inputs = {
     },
     "terramind_base_flood_url_in_path_out": {
         "image_url": {
-            "DEM": "https://huggingface.co/datasets/christian-pinto/TestTerraMindDataset/resolve/main/EMSR354_23_37LFH_DEM.tif",
-            "S1RTC": "https://huggingface.co/datasets/christian-pinto/TestTerraMindDataset/resolve/main/EMSR354_23_37LFH_S1RTC.zarr.zip",
-            "S2L2A": "https://huggingface.co/datasets/christian-pinto/TestTerraMindDataset/resolve/main/EMSR354_23_37LFH_S2L2A.zarr.zip",
+            "DEM": "https://huggingface.co/datasets/christian-pinto/TestTerraMindDataset/resolve/main/flood/EMSR354_23_37LFH_DEM.tif",
+            "S1RTC": "https://huggingface.co/datasets/christian-pinto/TestTerraMindDataset/resolve/main/flood/EMSR354_23_37LFH_S1RTC.zarr.zip",
+            "S2L2A": "https://huggingface.co/datasets/christian-pinto/TestTerraMindDataset/resolve/main/flood/EMSR354_23_37LFH_S2L2A.zarr.zip",
         },
         "data_format": "url",
         "out_data_format": "path",
