@@ -59,6 +59,11 @@ class RequestData(BaseModel):
     Indices for bands to be processed in the input file
     """
 
+    out_path: Optional[str] = None
+    """
+    Path to store the output image. Only used when out_data_format is set to 'path'
+    """
+
 
 MultiModalPromptType = Union[RequestData]
 

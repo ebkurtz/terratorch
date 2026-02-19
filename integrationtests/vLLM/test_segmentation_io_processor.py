@@ -99,6 +99,9 @@ def test_serving_segmentation_plugin(get_server, model_name, input_name):
 
     if "indices" in input:
         request_payload["data"]["indices"] = input["indices"]
+    
+    if "out_path" in input:
+        request_payload["data"]["out_path"] = input["out_path"]
 
     ret = requests.post("http://localhost:8000/pooling", json=request_payload)
     assert ret.status_code == 200
@@ -120,3 +123,116 @@ def test_serving_segmentation_plugin(get_server, model_name, input_name):
     image_hash = str(imagehash.phash(Image.open(file_name)))
 
     assert image_hash == models_output[model_name][input_name]
+
+
+def test_custom_out_path_override(get_server):
+    """Test that the out_path field in the request overrides the plugin configuration."""
+    model_name = "terramind_base_flood"
+    input_name = "terramind_base_flood_url_in_path_out"
+    
+    model = models[model_name]["location"]
+    io_processor_plugin = models[model_name]["io_processor_plugin"]
+    input = inputs[input_name]
+    
+    image_url = input["image_url"]
+    
+    server_args = [
+        "--skip-tokenizer-init",
+        "--enforce-eager",
+        "--max-num-seqs",
+        "32",
+        "--io-processor-plugin",
+        io_processor_plugin,
+        "--model-impl",
+        "terratorch",
+        "--enable-mm-embeds"
+    ]
+
+    server = get_server(model, server_args=server_args)
+    
+    # Create a custom output directory with automatic cleanup
+    with tempfile.TemporaryDirectory() as custom_output_dir:
+        request_payload = {
+            "data": {
+                "data": image_url,
+                "data_format": "url",
+                "out_data_format": "path",
+                "out_path": custom_output_dir,  # Custom output path
+                "image_format": ""
+            },
+            "model": model,
+            "softmax": False
+        }
+
+        ret = requests.post("http://localhost:8000/pooling", json=request_payload)
+        assert ret.status_code == 200
+
+        response = ret.json()
+        file_name = response["data"]["data"]
+        
+        # Verify the file was created in the custom output directory
+        assert file_name.startswith(custom_output_dir), \
+            f"Expected file to be in {custom_output_dir}, but got {file_name}"
+        
+        # Verify the file exists
+        assert os.path.exists(file_name), f"Output file {file_name} does not exist"
+        
+        # Verify the image hash matches expected output
+        image_hash = str(imagehash.phash(Image.open(file_name)))
+        assert image_hash == models_output[model_name]["terramind_base_flood_url_in_path_out"]
+
+
+def test_custom_out_path_validation(get_server):
+    """Test that invalid out_path raises appropriate errors."""
+    from pathlib import Path
+    
+    model_name = "terramind_base_flood"
+    input_name = "terramind_base_flood_url_in_path_out"
+    
+    model = models[model_name]["location"]
+    io_processor_plugin = models[model_name]["io_processor_plugin"]
+    input = inputs[input_name]
+    
+    image_url = input["image_url"]
+    
+    server_args = [
+        "--skip-tokenizer-init",
+        "--enforce-eager",
+        "--max-num-seqs",
+        "32",
+        "--io-processor-plugin",
+        io_processor_plugin,
+        "--model-impl",
+        "terratorch",
+        "--enable-mm-embeds"
+    ]
+
+    server = get_server(model, server_args=server_args)
+    
+    # Test 1: Non-existent path should raise an error
+    request_payload = {
+        "data": {
+            "data": image_url,
+            "data_format": "url",
+            "out_data_format": "path",
+            "out_path": "/nonexistent/path/that/does/not/exist",
+            "image_format": ""
+        },
+        "model": model,
+        "softmax": False
+    }
+
+    ret = requests.post("http://localhost:8000/pooling", json=request_payload)
+    assert ret.status_code != 200, "Expected error for non-existent path"
+    
+    # Test 2: Non-writable path should raise an error
+    with tempfile.TemporaryDirectory() as tmpdir:
+        readonly_dir = Path(tmpdir) / "readonly"
+        readonly_dir.mkdir()
+        # Set read-only permissions: 0o444 = r--r--r-- (no write permissions for anyone)
+        readonly_dir.chmod(0o444)
+        
+        request_payload["data"]["out_path"] = str(readonly_dir)
+        
+        ret = requests.post("http://localhost:8000/pooling", json=request_payload)
+        assert ret.status_code != 200, "Expected error for non-writable path"

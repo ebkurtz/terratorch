@@ -157,15 +157,22 @@ class TerramindSegmentationIOProcessor(IOProcessor):
         **kwargs,
     ) -> Union[PromptType, Sequence[PromptType]]:
 
-        prompt_dict = dict(prompt)
+        request_data = RequestData.model_validate(prompt)
         
-        input_data_format = prompt_dict["data_format"]
+        input_data_format = request_data.data_format
+        
+        # Validate out_path if provided and out_data_format is "path"
+        if request_data.out_data_format == "path" and request_data.out_path:
+            if not os.path.exists(request_data.out_path):
+                raise ValueError(f"The output path '{request_data.out_path}' does not exist")
+            if not os.access(request_data.out_path, os.W_OK):
+                raise ValueError(f"The output path '{request_data.out_path}' is not writable")
         
         datamodule_config = self._get_datamodule_config()
 
-        with path_or_tmpdir(prompt_dict) as dataset_path:
+        with path_or_tmpdir(request_data) as dataset_path:
             if input_data_format == "url":
-                await self._download_input_data(dataset_path, request_data=prompt_dict["data"])
+                await self._download_input_data(dataset_path, request_data=request_data.data)
 
             # set the datamodule data_root to where the dataset is located
             datamodule_config["init_args"]["data_root"] = dataset_path
@@ -214,8 +221,9 @@ class TerramindSegmentationIOProcessor(IOProcessor):
         if not request_id:
             request_id = "offline"
         self.requests_cache[request_id] = {
-            "data_format" : prompt_dict["data_format"],
-            "out_data_format": prompt_dict["out_data_format"],
+            "data_format" : request_data.data_format,
+            "out_data_format": request_data.out_data_format,
+            "out_path": request_data.out_path,
             "dataset_path": dataset_path,
             "prompt_data": prompt_data,
             "h_img": h_img,
@@ -260,7 +268,9 @@ class TerramindSegmentationIOProcessor(IOProcessor):
 
         ret: str
         if output_format == "path":
-            out_file_path = Path(self.plugin_config.output_path) / (request_info["filename"] + "_prediction.tif")
+            # Use out_path from request if provided, otherwise use plugin config output_path
+            output_dir = request_info["out_path"] if request_info["out_path"] else self.plugin_config.output_path
+            out_file_path = Path(output_dir) / (request_info["filename"] + "_prediction.tif")
             write_tiff(prediction, out_file_path, metadata)
             ret = str(out_file_path.resolve())
         elif output_format == "b64_json":
