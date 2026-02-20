@@ -16,9 +16,11 @@ examples/custom_modules/
 
 ## Why `__init__.py` matters
 
-TerraTorch imports the package from `custom_modules_path`. Registration decorators run only when the module is imported.
+TerraTorch imports the package from custom_modules_path. By default, this is set to $PWD/custom_modules (your current working directory).
 
-`custom_modules/__init__.py` must import your module class so it is registered:
+Since registration decorators (like @register_model) only execute when the corresponding module is actually imported, the \__init__.py serves as the entry point to ensure your custom components are "seen" and registered by TerraTorch during the loading process.
+
+Therefore, `custom_modules/__init__.py` must import your module class so it is registered:
 
 ```python
 from custom_modules.hello_geo_module import HelloGeoModule
