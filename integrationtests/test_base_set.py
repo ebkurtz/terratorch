@@ -154,18 +154,8 @@ def burnscars_image(tmp_path_factory):
 
 
 @pytest.fixture(scope="session")
-def floods_image(tmp_path_factory):
-    url = "https://s3.us-east.cloud-object-storage.appdomain.cloud/geospatial-studio-example-data/examples-for-inference/montenegro-brazil-floods-20231120-S1L2A.wgs84.tif"
-    temp_dir = tmp_path_factory.mktemp("data")
-    local_path = temp_dir / "floods_image.tif"
-
-    download_and_open_tiff(url=url, dest_path=local_path)
-    return str(local_path)
-
-
-# Handle the case where multimodal data is expect in a given directory rather than in a single file.
-@pytest.fixture(scope="session")
 def floods_image_dir(tmp_path_factory):
+    """Download and extract the floods image into temp directory."""
     url = "https://s3.us-east.cloud-object-storage.appdomain.cloud/geospatial-studio-example-data/examples-for-inference/montenegro-brazil-floods-20231120-S1L2A.wgs84.tif"
     temp_dir = tmp_path_factory.mktemp("data")
     local_path: Any = temp_dir / "floods_image.tif"
@@ -202,15 +192,20 @@ def floods_image_dir(tmp_path_factory):
     return str(temp_dir)
 
 
-def run_inference(config, checkpoint, image, dir=False):
+def run_inference(config, checkpoint, image):
     model = LightningInferenceModel.from_config(config_path=config, checkpoint_path=checkpoint)
 
-    if dir:
-        predictions, file_names = model.inference_on_dir(image)
-    else:
-        predictions = model.inference(image)
+    predictions = model.inference(image)
 
     return predictions
+
+
+def run_inference_on_dir(config, checkpoint, image_dir):
+    model = LightningInferenceModel.from_config(config_path=config, checkpoint_path=checkpoint)
+
+    predictions, file_names = model.inference_on_dir(image_dir)
+
+    return predictions, file_names
 
 
 @pytest.mark.parametrize(
@@ -239,7 +234,7 @@ def test_legacy_floods_predict(floods_image_dir, model_name):
     checkpoint_dir = os.path.join(TEST_CHECKPOINTS_ROOT, f"floods_{model_name}")
     checkpoint_path = os.path.join(checkpoint_dir, f"checkpoint_{model_name}.ckpt")
 
-    preds = run_inference(config=config_path, checkpoint=checkpoint_path, image=floods_image_dir, dir=True)
+    preds, file_names = run_inference_on_dir(config=config_path, checkpoint=checkpoint_path, image_dir=floods_image_dir)
 
     assert isinstance(preds, torch.Tensor), f"Expected predictions to be type torch.Tensor, got {type(preds)}"
 
@@ -386,14 +381,14 @@ def test_latest_terratorch_version_buildings_predict(config_name, buildings_imag
 
 
 @pytest.mark.parametrize("config_name", ["terramind_base", "terramind_large"])
-def test_latest_terratorch_version_floods_predict(config_name, floods_image):
+def test_latest_terratorch_version_floods_predict(config_name, floods_image_dir):
     # Models trained with current terratorch version
     config_path = os.path.join(TMP_ROOT, config_name, "lightning_logs", "version_0", "config_deploy.yaml")
 
     pattern = os.path.join(TMP_ROOT, config_name, "best-state_dict-epoch=*.ckpt")
     checkpoint_path = glob.glob(pattern)[0]
 
-    preds = run_inference(config=config_path, checkpoint=checkpoint_path, image=floods_image)
+    preds, file_names = run_inference_on_dir(config=config_path, checkpoint=checkpoint_path, image_dir=floods_image_dir)
 
     assert isinstance(preds, torch.Tensor), f"Expected predictions to be type torch.Tensor, got {type(preds)}"
 

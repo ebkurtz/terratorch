@@ -110,6 +110,9 @@ data:
     test_split: /dccstor/geofm-datasets/datasets/sen1floods11_v1.1/splits/flood_test_data.txt
     val_split: /dccstor/geofm-datasets/datasets/sen1floods11_v1.1/splits/flood_valid_data.txt
 
+    image_grep:
+      S1GRD: '*_S1Hand.tif'
+      S2L1C: '*_S2Hand.tif'
     label_grep: "*_LabelHand.tif"
     num_classes: 2
     means: 
