@@ -206,7 +206,7 @@ def run_inference(config, checkpoint, image, dir=False):
     model = LightningInferenceModel.from_config(config_path=config, checkpoint_path=checkpoint)
 
     if dir:
-        predictions = model.inference_on_dir(image)
+        predictions, file_names = model.inference_on_dir(image)
     else:
         predictions = model.inference(image)
 
