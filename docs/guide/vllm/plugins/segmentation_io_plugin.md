@@ -62,6 +62,12 @@ contain a string that complies to the format. Similarly, `out_data_format`
 controls the data format returned to the user. The field `indices` can be
 customised by the user and it is expected to be a list of integers.
 
+The optional `out_path` field allows you to specify a custom output directory
+for storing output files when `out_data_format` is set to `'path'`. If provided,
+this path overrides the plugin's default `output_path` configuration. The
+specified path must exist and be writable, otherwise a `ValueError` will be
+raised during request processing.
+
 ### Request Output Format
 
 The output format for the plugin is defined in the `RequestOutput` class.

@@ -129,11 +129,15 @@ def test_serving_segmentation_plugin(get_server, model_name, input_name):
     assert image_hash == models_output[model_name][input_name]
 
 
-def test_custom_out_path_override(get_server):
+@pytest.mark.parametrize(
+    "model_name,input_name",
+    [
+        ("terramind_base_flood", "terramind_base_flood_url_in_path_out"),
+        ("prithvi_300m_sen1floods11", "valencia_url_in_path_out"),
+    ],
+)
+def test_custom_out_path_override(get_server, model_name, input_name):
     """Test that the out_path field in the request overrides the plugin configuration."""
-    model_name = "terramind_base_flood"
-    input_name = "terramind_base_flood_url_in_path_out"
-
     model = models[model_name]["location"]
     io_processor_plugin = models[model_name]["io_processor_plugin"]
     input = inputs[input_name]
@@ -184,15 +188,19 @@ def test_custom_out_path_override(get_server):
 
         # Verify the image hash matches expected output
         image_hash = str(imagehash.phash(Image.open(file_name)))
-        assert image_hash == models_output[model_name]["terramind_base_flood_url_in_path_out"]
+        assert image_hash == models_output[model_name][input_name]
 
 
-def test_custom_out_path_validation(get_server):
+@pytest.mark.parametrize(
+    "model_name,input_name",
+    [
+        ("terramind_base_flood", "terramind_base_flood_url_in_path_out"),
+        ("prithvi_300m_sen1floods11", "valencia_url_in_path_out"),
+    ],
+)
+def test_custom_out_path_validation(get_server, model_name, input_name):
     """Test that invalid out_path raises appropriate errors."""
     from pathlib import Path
-
-    model_name = "terramind_base_flood"
-    input_name = "terramind_base_flood_url_in_path_out"
 
     model = models[model_name]["location"]
     io_processor_plugin = models[model_name]["io_processor_plugin"]
