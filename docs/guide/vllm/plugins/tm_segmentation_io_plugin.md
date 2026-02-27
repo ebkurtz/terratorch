@@ -1,11 +1,15 @@
 # Terramind Segmentation IOProcessor Plugin
 
-This plugin targets segmentation tasks for Terramind models and allows for
-multimodal input data (e.g., DEM, optical imagery) to be provided via URLs or
-file paths, organized in separate directories by modality.
+This plugin targets segmentation tasks for Terramind models and assumes
+multimodal input data to be provided via URLs or file paths, organized in
+separate directories by modality.
 
 During initialization, the plugin accesses the model's data module configuration
 from the vLLM configuration and instantiates a DataModule object dynamically.
+
+At this stage the plugin is targeting TerraMind models finetuned on the
+ImpactMesh dataset and expects exactly three modalities to be given in input:
+DEM, S1RTC, S2L2A.
 
 This plugin is installed as `terratorch_tm_segmentation`.
 
@@ -13,28 +17,44 @@ This plugin is installed as `terratorch_tm_segmentation`.
 
 ### Model requirements
 
-This plugin expects the model to take parameters for inference. The primary
-parameter, named `pixel_values`, points to a tensor containing the raw image
-data extracted from the input files. Additional parameters like
-`location_coords` may be optional depending on the model configuration.
+This plugin expects the model to take three parameters for inference, one per
+input modality.
 
 Below an example input model specification accepted by this plugin. The user can
 change the shapes of the tensors according to their model requirements but the
 number and names of the fields must be kept unchanged.
 
 ```json title="Model input specification accepted by the Terramind Segmentation IOProcessor plugin"
-"input":{
-    "target": "pixel_values",
-    "data":{
-        "pixel_values":{
-            "type": "torch.Tensor",
-            "shape": [6, 512, 512]
-        },
-        "location_coords":{
-            "type":"torch.Tensor",
-            "shape": [1, 2]
-        }
+"input": {
+  "data": {
+    "S2L2A": {
+      "type": "torch.Tensor",
+      "shape": [
+        12,
+        4,
+        256,
+        256
+      ]
+    },
+    "S1RTC": {
+      "type": "torch.Tensor",
+      "shape": [
+        2,
+        4,
+        256,
+        256
+      ]
+    },
+    "DEM": {
+      "type": "torch.Tensor",
+      "shape": [
+        1,
+        4,
+        256,
+        256
+      ]
     }
+  }
 }
 ```
 
@@ -78,8 +98,9 @@ environment variable).
   "data_format": "url",
   "out_data_format": "b64_json",
   "data": {
-    "DEM": "https://example.com/path/to/dem_file.tif",
-    "optical": "https://example.com/path/to/optical_file.tif"
+    "DEM": "https://example.com/path/to/dem_file",
+    "S1RTC": "https://example.com/path/to/S1RTC_file",
+    "S2L2A": "https://example.com/path/to/S2L2A_file"
   }
 }
 ```
@@ -92,9 +113,21 @@ environment variable).
   "out_data_format": "path",
   "out_path": "/custom/output/directory",
   "data": {
-    "DEM": "https://example.com/path/to/dem_file.tif",
-    "optical": "https://example.com/path/to/optical_file.tif"
+    "DEM": "https://example.com/path/to/dem_file",
+    "S1RTC": "https://example.com/path/to/S1RTC_file",
+    "S2L2A": "https://example.com/path/to/S2L2A_file"
   }
+}
+```
+
+**Example request payload with path input:**
+
+```json
+{
+  "data_format": "url",
+  "out_data_format": "path",
+  "out_path": "/custom/output/directory",
+  "data":
 }
 ```
 

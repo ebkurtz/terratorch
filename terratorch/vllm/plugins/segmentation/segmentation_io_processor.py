@@ -5,11 +5,16 @@ from __future__ import annotations
 import asyncio
 import base64
 import datetime
-from io import BytesIO
+import logging
 import os
 import tempfile
 import urllib.request
+import uuid
+import warnings
 from collections.abc import Sequence
+from datetime import datetime
+from io import BytesIO
+from pathlib import Path
 from typing import Any, Optional, Tuple, Union
 
 import numpy as np
@@ -17,20 +22,16 @@ import rasterio
 import regex as re
 import torch
 from einops import rearrange
-import logging
-from terratorch.vllm.plugins import generate_datamodule
-from terratorch.vllm.utils import check_vllm_version
-import uuid
-import warnings
 from vllm.config import VllmConfig
 from vllm.entrypoints.pooling.pooling.protocol import IOProcessorRequest, IOProcessorResponse
 from vllm.inputs.data import PromptType
 from vllm.outputs import PoolingRequestOutput
 from vllm.plugins.io_processors.interface import IOProcessor, IOProcessorInput, IOProcessorOutput
 
-from datetime import datetime
-import os
-from .types import RequestData, RequestOutput, PluginConfig, TiledInferenceParameters
+from terratorch.vllm.plugins import generate_datamodule
+from terratorch.vllm.utils import check_vllm_version
+
+from .types import PluginConfig, RequestData, RequestOutput, TiledInferenceParameters
 from .utils import download_file_async, read_file_async
 
 logger = logging.getLogger(__name__)
@@ -69,7 +70,7 @@ class SegmentationIOProcessor(IOProcessor):
 
         self.model_config = vllm_config.model_config.hf_config.to_dict()["pretrained_cfg"]
 
-        if not "data" in self.model_config:
+        if "data" not in self.model_config:
             raise ValueError("The model config does not contain the Terratorch datamodule configuration")
 
         plugin_config_string = os.getenv("TERRATORCH_SEGMENTATION_IO_PROCESSOR_CONFIG", "{}")
@@ -110,8 +111,8 @@ class SegmentationIOProcessor(IOProcessor):
         image: torch.Tensor,
         meta: dict,
         out_format: str,
-        request_id: Optional[str] = None,
-        output_path: Optional[str] = None,
+        request_id: str | None = None,
+        output_path: str | None = None,
     ) -> str | bytes:
         """Save multi-band image in Geotiff file.
 
@@ -128,13 +129,13 @@ class SegmentationIOProcessor(IOProcessor):
             if request_id:
                 fname = f"{request_id}.tiff"
             else:
-                fname = f"{str(uuid.uuid4())}.tiff"
-            file_path = os.path.join(output_dir, fname)
-            with rasterio.open(file_path, "w", **meta) as dest:
+                fname = f"{uuid.uuid4()!s}.tiff"
+            file_path = Path(output_dir) / fname
+            with rasterio.open(str(file_path), "w", **meta) as dest:
                 for i in range(image.shape[0]):
                     dest.write(image[i, :, :], i + 1)
 
-            return file_path
+            return str(file_path)
         elif out_format == "b64_json":
             with tempfile.NamedTemporaryFile() as tmpfile:
                 with rasterio.open(tmpfile.name, "w", **meta) as dest:
@@ -155,9 +156,9 @@ class SegmentationIOProcessor(IOProcessor):
 
     def read_geotiff(
         self,
-        file_path: Optional[str] = None,
-        path_type: Optional[str] = None,
-        file_data: Optional[bytes] = None,
+        file_path: str | None = None,
+        path_type: str | None = None,
+        file_data: bytes | None = None,
     ) -> tuple[torch.Tensor, dict, tuple[float, float] | None]:
         """Read all bands from *file_path* and return image + meta info.
 
@@ -171,8 +172,8 @@ class SegmentationIOProcessor(IOProcessor):
 
         if all([x is None for x in [file_path, path_type, file_data]]):
             raise Exception("All input fields to read_geotiff are None")
-        write_to_file: Optional[bytes] = None
-        path: Optional[str] = None
+        write_to_file: bytes | None = None
+        path: str | None = None
         if file_path is not None and path_type == "url":
             resp = urllib.request.urlopen(file_path)
             write_to_file = resp.read()
@@ -207,7 +208,7 @@ class SegmentationIOProcessor(IOProcessor):
         self,
         file_path: str,
         path_type: str,
-    ) -> Tuple[np.ndarray, dict, Tuple[float, float]]:
+    ) -> tuple[np.ndarray, dict, tuple[float, float]]:
         """Read all bands from *file_path* and return image + meta info.
 
         Args:
@@ -243,11 +244,11 @@ class SegmentationIOProcessor(IOProcessor):
 
     async def load_image(
         self,
-        data: Union[list[str]],
+        data: list[str],
         path_type: str,
-        mean: Optional[list[float]] = None,
-        std: Optional[list[float]] = None,
-        indices: Optional[Union[list[int], None]] = None,
+        mean: list[float] | None = None,
+        std: list[float] | None = None,
+        indices: list[int] | None | None = None,
     ):
         """Build an input example by loading images in *file_paths*.
 
@@ -327,9 +328,9 @@ class SegmentationIOProcessor(IOProcessor):
     def pre_process(
         self,
         prompt: IOProcessorInput,
-        request_id: Optional[str] = None,
+        request_id: str | None = None,
         **kwargs,
-    ) -> Union[PromptType, Sequence[PromptType]]:
+    ) -> PromptType | Sequence[PromptType]:
         # Just run the async function froma. synchronous context.
         # Since we are already in the vLLM server event loop we use that one.
         loop = asyncio.get_event_loop()
@@ -338,18 +339,19 @@ class SegmentationIOProcessor(IOProcessor):
     async def pre_process_async(
         self,
         prompt: IOProcessorInput,
-        request_id: Optional[str] = None,
+        request_id: str | None = None,
         **kwargs,
-    ) -> Union[PromptType, Sequence[PromptType]]:
+    ) -> PromptType | Sequence[PromptType]:
 
         preprocess_start = datetime.now()
         image_data = dict(prompt)
 
         # Validate out_path if provided and out_data_format is "path"
         if image_data.get("out_data_format") == "path" and image_data.get("out_path"):
-            if not os.path.exists(image_data["out_path"]):
+            out_path = Path(image_data["out_path"])
+            if not out_path.exists():
                 raise ValueError(f"The output path '{image_data['out_path']}' does not exist")
-            if not os.access(image_data["out_path"], os.W_OK):
+            if not os.access(str(out_path), os.W_OK):
                 raise ValueError(f"The output path '{image_data['out_path']}' is not writable")
 
         indices = DEFAULT_INPUT_INDICES if not image_data["indices"] else image_data["indices"]
@@ -446,7 +448,7 @@ class SegmentationIOProcessor(IOProcessor):
     def post_process(
         self,
         model_output: Sequence[PoolingRequestOutput],
-        request_id: Optional[str] = None,
+        request_id: str | None = None,
         **kwargs,
     ) -> IOProcessorOutput:
 

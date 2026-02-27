@@ -29,6 +29,7 @@ from .types import PluginConfig, RequestData, RequestOutput, TiledInferenceParam
 
 logger = logging.getLogger(__name__)
 
+
 class TerramindSegmentationIOProcessor(IOProcessor):
     """vLLM IOProcessor for Terramind segmentation tasks
 
@@ -43,7 +44,7 @@ class TerramindSegmentationIOProcessor(IOProcessor):
     The plugins configurable variables are:
     - output_path (String): Default path for storing output files when requesting output in 'path' mode. It is is ignored otherwise.
     The full schema of the plugin configuration can be found in vllm.plugins.segmentation.types.PluginConfig
-    
+
     Once instantiated from the vLLM side, the plugin is automatically used when performing inference requests to the
     '/pooling' endpoint of a vLLM instance.
     """
@@ -55,14 +56,13 @@ class TerramindSegmentationIOProcessor(IOProcessor):
         self.model_config = vllm_config.model_config.hf_config.to_dict()["pretrained_cfg"]
 
         if not "data" in self.model_config:
-            raise ValueError("The model config does not contain the "
-                             "Terratorch datamodule configuration")
+            raise ValueError("The model config does not contain the Terratorch datamodule configuration")
 
         plugin_config_string = os.getenv("TERRATORCH_SEGMENTATION_IO_PROCESSOR_CONFIG", "{}")
 
         self.plugin_config = PluginConfig.model_validate_json(plugin_config_string)
-        
-        self.tiled_inference_parameters = self._init_tiled_inference_parameters_info() 
+
+        self.tiled_inference_parameters = self._init_tiled_inference_parameters_info()
         self.batch_size = 1
         self.requests_cache: dict[str, dict[str, Any]] = {}
 
@@ -75,26 +75,27 @@ class TerramindSegmentationIOProcessor(IOProcessor):
                     tiled_inf_param_dict["w_crop"] = tiled_inf_param_dict["crop"]
                     del tiled_inf_param_dict["crop"]
                 else:
-                    raise ValueError(f"Expect 'crop' (or 'h_crop' and 'w_crop') in tiled_inference_parameters "
-                                    f"but got {tiled_inf_param_dict}")
-            if ("stride" in tiled_inf_param_dict):
+                    raise ValueError(
+                        f"Expect 'crop' (or 'h_crop' and 'w_crop') in tiled_inference_parameters "
+                        f"but got {tiled_inf_param_dict}"
+                    )
+            if "stride" in tiled_inf_param_dict:
                 tiled_inf_param_dict["h_stride"] = tiled_inf_param_dict["stride"]
                 tiled_inf_param_dict["w_stride"] = tiled_inf_param_dict["stride"]
                 del tiled_inf_param_dict["stride"]
         else:
             tiled_inf_param_dict = {}
-        
+
         return TiledInferenceParameters(**tiled_inf_param_dict)
-    
+
     def _get_datamodule_config(self) -> dict:
         data_module_config = copy.deepcopy(self.model_config["data"])
-        
+
         if "ImpactMeshDataModule" in data_module_config["class_path"]:
             # This is so that we can put the input data in a folder with an arbitrary name.
             # However, this requires for the means and stds to be included in the model configuration
             data_module_config["init_args"]["label_grep"] = ""
 
-        
         return data_module_config
 
     async def _download_input_data(self, dataset_path: str, request_data: dict):
@@ -112,15 +113,13 @@ class TerramindSegmentationIOProcessor(IOProcessor):
 
         await asyncio.gather(*download_tasks)
 
-
     def parse_request(self, request: Any) -> IOProcessorInput:
         if type(request) is dict:
             image_prompt = RequestData(**request)
             return image_prompt
         if isinstance(request, IOProcessorRequest):
             if not hasattr(request, "data"):
-                raise ValueError(
-                    "missing 'data' field in OpenAIBaseModel Request")
+                raise ValueError("missing 'data' field in OpenAIBaseModel Request")
 
             request_data = request.data
 
@@ -131,8 +130,7 @@ class TerramindSegmentationIOProcessor(IOProcessor):
 
         raise ValueError("Unable to parse request")
 
-    def output_to_response(
-            self, plugin_output: IOProcessorOutput) -> IOProcessorResponse:
+    def output_to_response(self, plugin_output: IOProcessorOutput) -> IOProcessorResponse:
         return IOProcessorResponse(
             request_id=plugin_output.request_id,
             data=plugin_output,
@@ -149,7 +147,6 @@ class TerramindSegmentationIOProcessor(IOProcessor):
         loop = asyncio.get_event_loop()
         return loop.run_until_complete(self.pre_process_async(prompt, request_id, **kwargs))
 
-
     async def pre_process_async(
         self,
         prompt: IOProcessorInput,
@@ -158,16 +155,16 @@ class TerramindSegmentationIOProcessor(IOProcessor):
     ) -> Union[PromptType, Sequence[PromptType]]:
 
         request_data = RequestData.model_validate(prompt)
-        
+
         input_data_format = request_data.data_format
-        
+
         # Validate out_path if provided and out_data_format is "path"
         if request_data.out_data_format == "path" and request_data.out_path:
             if not os.path.exists(request_data.out_path):
                 raise ValueError(f"The output path '{request_data.out_path}' does not exist")
             if not os.access(request_data.out_path, os.W_OK):
                 raise ValueError(f"The output path '{request_data.out_path}' is not writable")
-        
+
         datamodule_config = self._get_datamodule_config()
 
         with path_or_tmpdir(request_data) as dataset_path:
@@ -175,7 +172,7 @@ class TerramindSegmentationIOProcessor(IOProcessor):
                 await self._download_input_data(dataset_path, request_data=request_data.data)
 
             # set the datamodule data_root to where the dataset is located
-            datamodule_config["init_args"]["data_root"] = dataset_path
+            datamodule_config["init_args"]["predict_data_root"] = dataset_path
             datamodule = generate_datamodule(datamodule_config)
             datamodule.batch_size = 1
             datamodule.setup("predict")
@@ -191,10 +188,9 @@ class TerramindSegmentationIOProcessor(IOProcessor):
 
         # Split the input in tiles depending on the tiled inference parameters
         input_data = datamodule.aug(data)["image"]
-        prompt_data, tensor_reshape_fn, input_batch_size, h_img, w_img, _ , delta = (
-            prepare_tiled_inference_input(input_data,
-                **self.tiled_inference_parameters.model_dump(exclude={"average_patches"}),
-            )
+        prompt_data, tensor_reshape_fn, input_batch_size, h_img, w_img, _, delta = prepare_tiled_inference_input(
+            input_data,
+            **self.tiled_inference_parameters.model_dump(exclude={"average_patches"}),
         )
 
         prompts = []
@@ -205,14 +201,9 @@ class TerramindSegmentationIOProcessor(IOProcessor):
 
             # after v0.14.0 vLLM has changed the input structure for multimodal data
             if check_vllm_version("0.14.0", ">"):
-                multi_modal_data = {
-                    "image": multi_modal_data
-                }
+                multi_modal_data = {"image": multi_modal_data}
 
-            prompt = {
-                "prompt_token_ids": [1],
-                "multi_modal_data": multi_modal_data
-            }
+            prompt = {"prompt_token_ids": [1], "multi_modal_data": multi_modal_data}
 
             prompts.append(prompt)
 
@@ -221,7 +212,7 @@ class TerramindSegmentationIOProcessor(IOProcessor):
         if not request_id:
             request_id = "offline"
         self.requests_cache[request_id] = {
-            "data_format" : request_data.data_format,
+            "data_format": request_data.data_format,
             "out_data_format": request_data.out_data_format,
             "out_path": request_data.out_path,
             "dataset_path": dataset_path,
@@ -248,7 +239,7 @@ class TerramindSegmentationIOProcessor(IOProcessor):
 
         if request_id and (request_id in self.requests_cache):
             request_info = self.requests_cache[request_id]
-            del(self.requests_cache[request_id])
+            del self.requests_cache[request_id]
 
         output_format = request_info["out_data_format"]
 
@@ -270,7 +261,7 @@ class TerramindSegmentationIOProcessor(IOProcessor):
         if output_format == "path":
             # Use out_path from request if provided, otherwise use plugin config output_path
             output_dir = request_info["out_path"] if request_info["out_path"] else self.plugin_config.output_path
-            out_file_path = Path(output_dir) / (request_info["filename"] + "_prediction.tif")
+            out_file_path = Path(output_dir) / f"{Path(request_info['filename']).stem}_prediction.tif"
             write_tiff(prediction, out_file_path, metadata)
             ret = str(out_file_path.resolve())
         elif output_format == "b64_json":
