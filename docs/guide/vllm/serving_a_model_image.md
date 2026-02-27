@@ -71,10 +71,18 @@ request_payload = {
 
 The user can save this payload in a file named `payload.json`.
 
+<!-- prettier-ignore-start -->
+!!! info
+    In this example the input image is in the form of a URL. The structure of
+    the input payload depends on the IO Processor plugin used with the model.
+    See the list of [available plugins](./vllm_io_plugins.md#available-terratorch-ioprocessor-plugins)
+    for more details.
+<!-- prettier-ignore-end -->
+
 With this payload the IOProcessor plugin will download the input geoTiff from a
 URL and return the path on local filesystem of the output geoTiff.
 
-Assuming the vLLM server is listening on `localhost:8000` the below snippet
+Assuming the vLLM server is listening on `localhost:8000` the snippet below
 shows how to send the inference request and retrieve the output file path.
 
 ```bash title="Request inference to the vLLM serving instance"

@@ -102,6 +102,13 @@ Please note, the `tiled_inference_parameters` field is not mandatory in the
 model configuration. Full details on the model configuration file can be found
 [here](../prepare_your_model.md#vllm-compatible-model-configuration).
 
+#### Default Output Directory
+
+If no `out_path` is specified in the request payload and no output folder is
+configured in the plugin configuration (via the
+`TERRATORCH_SEGMENTATION_IO_PROCESSOR_CONFIG` environment variable), the plugin
+will default to writing output files to the user's home directory.
+
 #### Image Input Indices
 
 By default the plugin extracts bands at indices `[0, 1, 2, 3, 4, 5]` from the

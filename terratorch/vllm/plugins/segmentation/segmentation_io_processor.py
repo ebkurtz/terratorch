@@ -31,7 +31,7 @@ from vllm.plugins.io_processors.interface import IOProcessor, IOProcessorInput, 
 from terratorch.vllm.plugins import generate_datamodule
 from terratorch.vllm.utils import check_vllm_version
 
-from .types import PluginConfig, RequestData, RequestOutput, TiledInferenceParameters
+from .types import PluginConfig, RequestData, RequestOutput, SegmentationRequestInfo, TiledInferenceParameters
 from .utils import download_file_async, read_file_async
 
 logger = logging.getLogger(__name__)
@@ -81,7 +81,7 @@ class SegmentationIOProcessor(IOProcessor):
 
         self.tiled_inference_parameters = self._init_tiled_inference_parameters_info()
         self.batch_size = 1
-        self.requests_cache: dict[str, dict[str, Any]] = {}
+        self.requests_cache: dict[str, SegmentationRequestInfo] = {}
 
     def _init_tiled_inference_parameters_info(self) -> TiledInferenceParameters:
         if "tiled_inference_parameters" in self.model_config["model"]["init_args"]:
@@ -395,15 +395,15 @@ class SegmentationIOProcessor(IOProcessor):
         # in offline sync mode. Therefore, we assume that one request at a time is being processed
         if not request_id:
             request_id = "offline"
-        self.requests_cache[request_id] = {
-            "out_data_format": image_data["out_data_format"],
-            "out_path": image_data.get("out_path"),
-            "meta_data": meta_data[0],
-            "original_h": original_h,
-            "original_w": original_w,
-            "h1": h1,
-            "w1": w1,
-        }
+        self.requests_cache[request_id] = SegmentationRequestInfo(
+            out_data_format=image_data["out_data_format"],
+            out_path=image_data.get("out_path"),
+            metadata=meta_data[0],
+            original_h=original_h,
+            original_w=original_w,
+            h1=h1,
+            w1=w1,
+        )
 
         # Split into batches if number of windows > batch_size
         num_batches = windows.shape[0] // self.batch_size if windows.shape[0] > self.batch_size else 1
@@ -494,23 +494,23 @@ class SegmentationIOProcessor(IOProcessor):
             w=self.tiled_inference_parameters.w_crop,
             b=1,
             c=1,
-            h1=request_info["h1"],
-            w1=request_info["w1"],
+            h1=request_info.h1,
+            w1=request_info.w1,
         )
 
         # Cut padded area back to original size
-        pred_imgs = pred_imgs[..., : request_info["original_h"], : request_info["original_w"]]
+        pred_imgs = pred_imgs[..., : request_info.original_h, : request_info.original_w]
 
         # Squeeze (batch size 1)
         pred_imgs = pred_imgs[0]
 
-        meta_data = request_info["meta_data"]
-        meta_data.update(count=1, dtype="uint8", compress="lzw", nodata=0)
+        metadata = request_info.metadata
+        metadata.update(count=1, dtype="uint8", compress="lzw", nodata=0)
 
         # Use out_path from request if provided, otherwise use plugin config output_path
-        output_path = request_info["out_path"] if request_info["out_path"] else self.plugin_config.output_path
+        output_path = request_info.out_path if request_info.out_path else self.plugin_config.output_path
         out_data = self.save_geotiff(
-            self._convert_np_uint8(pred_imgs), meta_data, request_info["out_data_format"], request_id, output_path
+            self._convert_np_uint8(pred_imgs), metadata, request_info.out_data_format, request_id, output_path
         )
 
-        return RequestOutput(data_format=request_info["out_data_format"], data=out_data, request_id=request_id)
+        return RequestOutput(data_format=request_info.out_data_format, data=out_data, request_id=request_id)

@@ -25,7 +25,7 @@ from terratorch.cli_tools import write_tiff
 from terratorch.vllm.utils import check_vllm_version
 from .utils import download_file_async, get_filename_from_url, path_or_tmpdir, to_base64_tiff
 
-from .types import PluginConfig, RequestData, RequestOutput, TiledInferenceParameters
+from .types import PluginConfig, RequestData, RequestOutput, TerramindSegmentationRequestInfo, TiledInferenceParameters
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +64,7 @@ class TerramindSegmentationIOProcessor(IOProcessor):
 
         self.tiled_inference_parameters = self._init_tiled_inference_parameters_info()
         self.batch_size = 1
-        self.requests_cache: dict[str, dict[str, Any]] = {}
+        self.requests_cache: dict[str, TerramindSegmentationRequestInfo] = {}
 
     def _init_tiled_inference_parameters_info(self) -> TiledInferenceParameters:
         if "tiled_inference_parameters" in self.model_config["model"]["init_args"]:
@@ -181,10 +181,14 @@ class TerramindSegmentationIOProcessor(IOProcessor):
             data_loader = datamodule.predict_dataloader()
             data = list(data_loader)[0]
 
-            # retrieve original image metadata for later use
-            input_image_path = Path(dataset_path) / "DEM" / f"{data['filename'][0]}_DEM.tif"
-            with rasterio.open(input_image_path, "r") as src:
-                metadata = src.meta
+            # We can only retrieve metadata if the dataset contains a tiff file that we can load
+            if "filename" in data:
+                input_image_path = data["filename"][0]
+                with rasterio.open(input_image_path, "r") as src:
+                    metadata = src.meta
+            else:
+                logger.warning("No metadata can be loaded for the provided input")
+                metadata = {}
 
         # Split the input in tiles depending on the tiled inference parameters
         input_data = datamodule.aug(data)["image"]
@@ -211,19 +215,18 @@ class TerramindSegmentationIOProcessor(IOProcessor):
         # in offline sync mode. Therefore, we assume that one request at a time is being processed
         if not request_id:
             request_id = "offline"
-        self.requests_cache[request_id] = {
-            "data_format": request_data.data_format,
-            "out_data_format": request_data.out_data_format,
-            "out_path": request_data.out_path,
-            "dataset_path": dataset_path,
-            "prompt_data": prompt_data,
-            "h_img": h_img,
-            "w_img": w_img,
-            "input_batch_size": input_batch_size,
-            "metadata": metadata,
-            "filename": data["filename"][0],
-            "delta": delta,
-        }
+        self.requests_cache[request_id] = TerramindSegmentationRequestInfo(
+            out_data_format=request_data.out_data_format,
+            out_path=request_data.out_path,
+            dataset_path=dataset_path,
+            prompt_data=prompt_data,
+            h_img=h_img,
+            w_img=w_img,
+            input_batch_size=input_batch_size,
+            metadata=metadata,
+            filename=data["filename"][0],
+            delta=delta,
+        )
 
         return prompts
 
@@ -241,34 +244,36 @@ class TerramindSegmentationIOProcessor(IOProcessor):
             request_info = self.requests_cache[request_id]
             del self.requests_cache[request_id]
 
-        output_format = request_info["out_data_format"]
+        output_format = request_info.out_data_format
 
         model_outputs = [output.outputs.data.squeeze(0) for output in model_output]
-        outputs = list(zip(request_info["prompt_data"], model_outputs, strict=True))
+        outputs = list(zip(request_info.prompt_data, model_outputs, strict=True))
         output = generate_tiled_inference_output(
             outputs=outputs,
-            input_batch_size=request_info["input_batch_size"],
-            h_img=request_info["h_img"],
-            w_img=request_info["w_img"],
-            delta=request_info["delta"],
+            input_batch_size=request_info.input_batch_size,
+            h_img=request_info.h_img,
+            w_img=request_info.w_img,
+            delta=request_info.delta,
+            padding=self.tiled_inference_parameters.padding,
+            average_patches=self.tiled_inference_parameters.average_patches,
         )
 
         prediction = output.squeeze(0).argmax(dim=0).numpy()
 
-        metadata = request_info["metadata"]
+        metadata = request_info.metadata
 
         ret: str
         if output_format == "path":
             # Use out_path from request if provided, otherwise use plugin config output_path
-            output_dir = request_info["out_path"] if request_info["out_path"] else self.plugin_config.output_path
-            out_file_path = Path(output_dir) / f"{Path(request_info['filename']).stem}_prediction.tif"
+            output_dir = request_info.out_path if request_info.out_path else self.plugin_config.output_path
+            out_file_path = Path(output_dir) / f"{Path(request_info.filename).stem}_prediction.tif"
             write_tiff(prediction, out_file_path, metadata)
             ret = str(out_file_path.resolve())
         elif output_format == "b64_json":
             ret = to_base64_tiff(prediction, metadata=metadata)
 
         return RequestOutput(
-            data_format=request_info["out_data_format"],
+            data_format=request_info.out_data_format,
             data=ret,
             request_id=request_id,
         )
