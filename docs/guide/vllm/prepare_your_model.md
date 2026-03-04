@@ -67,13 +67,74 @@ The snippet below shows the structure of the `config.json` file for a Prithvi
         "freeze_decoder": false,
         "plot_on_val": 10
       }
+    },
+    "data": {
+      "class_path": "terratorch.datamodules.Sen1Floods11NonGeoDataModule",
+      "init_args": {
+        "data_root": "/dccstor/geofm-finetuning/datasets/sen1floods11",
+        "batch_size": 16,
+        "num_workers": 8,
+        "bands": ["BLUE", "GREEN", "RED", "NIR_NARROW", "SWIR_1", "SWIR_2"],
+        "train_transform": [
+          {
+            "class_path": "albumentations.RandomCrop",
+            "init_args": {
+              "height": 224,
+              "width": 224,
+              "p": 1
+            }
+          },
+          {
+            "class_path": "albumentations.HorizontalFlip",
+            "init_args": {
+              "p": 0.5
+            }
+          },
+          {
+            "class_path": "albumentations.VerticalFlip",
+            "init_args": {
+              "p": 0.5
+            }
+          },
+          {
+            "class_path": "albumentations.pytorch.ToTensorV2",
+            "init_args": {
+              "transpose_mask": false,
+              "p": 1
+            }
+          }
+        ],
+        "val_transform": [
+          {
+            "class_path": "albumentations.pytorch.ToTensorV2",
+            "init_args": {
+              "transpose_mask": false,
+              "p": 1
+            }
+          }
+        ],
+        "test_transform": [
+          {
+            "class_path": "albumentations.pytorch.ToTensorV2",
+            "init_args": {
+              "transpose_mask": false,
+              "p": 1
+            }
+          }
+        ],
+        "drop_last": true,
+        "constant_scale": 0.0001,
+        "no_data_replace": 0,
+        "no_label_replace": -1,
+        "use_metadata": false
+      }
     }
   }
 }
 ```
 
-from the above we highlight two main sections: 1) vLLM required info, 2) model
-configuration.
+from the above we highlight three main sections: 1) vLLM required info, 2) model
+configuration, 3) model input specification and 4) data module configuration.
 
 ### vLLM Required Information Section
 
@@ -88,13 +149,57 @@ At the top of the configuration file we find
 
 These values are mandatory and must be kept unchanged.
 
-### Model Specification Section
+### Model Configuration
 
-The model specification section is contained in the `pretrained_cfg` section of
-the configuration file and is in turn composed of three sub-sections: 1) model
-input specification, 2) model configuration and 3) datamodule configuration.
+The model configuration section is contained in the `pretrained_cfg` section of
+the configuration file and contains all the details for instantiating the model.
+The model specification includes information such as the model task
+`class_path`, the init_args for the task, etc. The format of this section
+follows the standard format for a TerraTorch model configuration.
 
-#### Model Input Specification
+```json title="Prithvi 300M model specification"
+"model": {
+  "class_path": "terratorch.tasks.SemanticSegmentationTask",
+  "init_args": {
+    "model_args": {
+      "backbone_pretrained": true,
+      "backbone": "prithvi_eo_v2_300_tl",
+      "decoder": "UperNetDecoder",
+      "decoder_channels": 256,
+      "decoder_scale_modules": true,
+      "num_classes": 2,
+      "rescale": true,
+      "backbone_bands": [
+        "BLUE",
+        "GREEN",
+        "RED",
+        "NIR_NARROW",
+        "SWIR_1",
+        "SWIR_2"
+      ],
+      "head_dropout": 0.1,
+      "necks": [
+        {
+          "name": "SelectIndices",
+          "indices": [5, 11, 17, 23]
+        },
+        {
+          "name": "ReshapeTokensToImage"
+        }
+      ]
+    },
+    "model_factory": "EncoderDecoderFactory",
+    "loss": "ce",
+    "ignore_index": -1,
+    "lr": 0.001,
+    "freeze_backbone": false,
+    "freeze_decoder": false,
+    "plot_on_val": 10
+  }
+},
+```
+
+### Model Input Specification
 
 The model info specification is necessary to support vLLM in performing a set of
 warm-up runs and to properly prepare the input for inference.
@@ -132,14 +237,78 @@ model.forward(pixel_values, location_coords=location_coords)
 If no positional argument is required, the `target` field can be omitted and all
 entries in the `data` field would be passed as named arguments.
 
-#### Model and Datamodule Configuration
+### Data Module Configuration
 
-The model configuration is contained in the `model` section of the configuration
-file, while the datamodule configuration is in the `data` section. Please refer
-to the full snippet at the beginning of this page. Both model and datamodule
-configuration come straight from the model yaml configuration used when
-performing inference via the LightningCLI. The presence of the `data` section is
-mandatory.
+The data module configuration section is contained in the `pretrained_cfg`
+section of the configuration file and contains all the details for instantiating
+the required data module. Information part of this section include the data
+module `class_path` and the and the various transforms to applied to the input
+data. The format of this section follows the standard format for a TerraTorch
+data module configuration.
+
+```json title="Prithvi 300M example DataModule configuration"
+"data": {
+      "class_path": "terratorch.datamodules.Sen1Floods11NonGeoDataModule",
+      "init_args": {
+        "data_root": "/dccstor/geofm-finetuning/datasets/sen1floods11",
+        "batch_size": 16,
+        "num_workers": 8,
+        "bands": ["BLUE", "GREEN", "RED", "NIR_NARROW", "SWIR_1", "SWIR_2"],
+        "train_transform": [
+          {
+            "class_path": "albumentations.RandomCrop",
+            "init_args": {
+              "height": 224,
+              "width": 224,
+              "p": 1
+            }
+          },
+          {
+            "class_path": "albumentations.HorizontalFlip",
+            "init_args": {
+              "p": 0.5
+            }
+          },
+          {
+            "class_path": "albumentations.VerticalFlip",
+            "init_args": {
+              "p": 0.5
+            }
+          },
+          {
+            "class_path": "albumentations.pytorch.ToTensorV2",
+            "init_args": {
+              "transpose_mask": false,
+              "p": 1
+            }
+          }
+        ],
+        "val_transform": [
+          {
+            "class_path": "albumentations.pytorch.ToTensorV2",
+            "init_args": {
+              "transpose_mask": false,
+              "p": 1
+            }
+          }
+        ],
+        "test_transform": [
+          {
+            "class_path": "albumentations.pytorch.ToTensorV2",
+            "init_args": {
+              "transpose_mask": false,
+              "p": 1
+            }
+          }
+        ],
+        "drop_last": true,
+        "constant_scale": 0.0001,
+        "no_data_replace": 0,
+        "no_label_replace": -1,
+        "use_metadata": false
+      }
+    }
+```
 
 ### Automatic generation of vLLM model configurations
 

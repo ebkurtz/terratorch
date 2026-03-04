@@ -171,7 +171,7 @@ Each modality has its own subdirectory containing the respective data files.
 
 <!-- prettier-ignore-start -->
 !!! warning "One input bundle per request supported"
-    The plugin currently supports only one input bundle per reuqest
+    The plugin currently supports only one input bundle per request
     (one file per modality). Do not place more than one file in each subfolder.
 <!-- prettier-ignore-end -->
 
@@ -219,7 +219,8 @@ Full details on the available tiled inference parameters are available in the
 If no `out_path` is specified in the request payload and no output folder is
 configured in the plugin configuration (via the
 `TERRATORCH_SEGMENTATION_IO_PROCESSOR_CONFIG` environment variable), the plugin
-will default to writing output files to the user's home directory.
+will default to writing output files to the user's home directory. This default
+only impacts requests that set `out_data_format: "path"`.
 
 #### Data Module Configuration
 
@@ -227,6 +228,8 @@ This plugin dynamically instantiates a data module based on the configuration in
 the model's `config.json` file. The data module is then used for loading the
 input data. By default, the plugin configures the data module in `predict` mode
 and sets the `predict_data_root` of the DataModule to the input data folder.
+More info on the data module configuration can be found
+[here](../prepare_your_model.md#data-module-configuration).
 
 <!-- prettier-ignore-start -->
 !!! info "Using a different data module"
