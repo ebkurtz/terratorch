@@ -541,7 +541,7 @@ class GenericMultimodalDataset(NonGeoDataset, ABC):
             mask = None
 
         if "prediction" in sample:
-            prediction = sample["mask"]
+            prediction = sample["prediction"]
             if isinstance(prediction, dict):
                 raise ValueError("Multiple outputs not yet supported")
             if isinstance(prediction, torch.Tensor):
