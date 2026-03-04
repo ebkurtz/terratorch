@@ -123,3 +123,12 @@ pytorch tensors that in this case contain dummy data. In a real scenario, the
 user would have to pre-process the input images into tensors before submitting
 them to the model for inference. In tensor-to-tensor mode, the model processes
 the request and returns a response payload in the format of a numpy array.
+
+<!-- prettier-ignore-start -->
+!!! info 
+    In this example the model expects two tensors in input: `pixel_values` with
+    shape `(6, 512, 512)` and `location_coords` with shape `(1, 2)`. The structure of
+    the input payload depends on the model itself and can be found in the `input`
+    section of the model
+    [config.json](./prepare_your_model.md#model-input-specification).
+<!-- prettier-ignore-end -->

@@ -62,6 +62,12 @@ contain a string that complies to the format. Similarly, `out_data_format`
 controls the data format returned to the user. The field `indices` can be
 customised by the user and it is expected to be a list of integers.
 
+The optional `out_path` field allows you to specify a custom output directory
+for storing output files when `out_data_format` is set to `'path'`. If provided,
+this path overrides the plugin's default `output_path` configuration. The
+specified path must exist and be writable, otherwise a `ValueError` will be
+raised during request processing.
+
 ### Request Output Format
 
 The output format for the plugin is defined in the `RequestOutput` class.
@@ -95,6 +101,13 @@ default values with vertical and horizontal crop values of 256.
 Please note, the `tiled_inference_parameters` field is not mandatory in the
 model configuration. Full details on the model configuration file can be found
 [here](../prepare_your_model.md#vllm-compatible-model-configuration).
+
+#### Default Output Directory
+
+If no `out_path` is specified in the request payload and no output folder is
+configured in the plugin configuration (via the
+`TERRATORCH_SEGMENTATION_IO_PROCESSOR_CONFIG` environment variable), the plugin
+will default to writing output files to the user's home directory.
 
 #### Image Input Indices
 
