@@ -133,7 +133,7 @@ if [ -n "$MODELS_FIT_TEST" ]; then
     echo "Submitting test_models_fit (required prerequisite for dependent tests)..." >&2
     JOB_NAME="tt_${USER}_${MODELS_FIT_TEST}"
     
-    MODELS_FIT_JOB_ID=$(bsub -gpu "num=1" -R "rusage[ngpus=1, cpu=8, mem=128GB]" \
+    MODELS_FIT_JOB_ID=$(bsub -gpu "num=1" -R "rusage[cpu=8, mem=32GB]" \
          -J "$JOB_NAME" \
          -o "$LOG_DIR/${MODELS_FIT_TEST}.log" \
          -e "$LOG_DIR/${MODELS_FIT_TEST}.err" \
@@ -147,7 +147,7 @@ if [ -n "$MODELS_FIT_TEST" ]; then
         for TEST_NAME in $DEPENDENT_TEST_LIST; do
             JOB_NAME="tt_${USER}_${TEST_NAME}"
             
-            JOB_ID=$(bsub -gpu "num=1" -R "rusage[ngpus=1, cpu=8, mem=128GB]" \
+            JOB_ID=$(bsub -gpu "num=1" -R "rusage[cpu=8, mem=32GB]" \
                  -w "done($MODELS_FIT_JOB_ID)" \
                  -J "$JOB_NAME" \
                  -o "$LOG_DIR/${TEST_NAME}.log" \
@@ -172,7 +172,7 @@ if [ -n "$MODELS_FIT_TEST" ]; then
             fi
         done
         
-        bsub -gpu "num=1" -R "rusage[ngpus=1, cpu=8, mem=128GB]" \
+        bsub -gpu "num=1" -R "rusage[cpu=8, mem=32GB]" \
              -w "$CLEANUP_DEPENDENCY" \
              -J "$JOB_NAME" \
              -o "$LOG_DIR/${CLEANUP_TEST}.log" \
@@ -190,7 +190,7 @@ if [ -n "$MODELS_FIT_TEST" ]; then
         for TEST_NAME in $INDEPENDENT_TEST_LIST; do
             JOB_NAME="tt_${USER}_${TEST_NAME}"
             
-            bsub -gpu "num=1" -R "rusage[ngpus=1, cpu=8, mem=128GB]" \
+            bsub -gpu "num=1" -R "rusage[cpu=8, mem=32GB]" \
                  -J "$JOB_NAME" \
                  -o "$LOG_DIR/${TEST_NAME}.log" \
                  -e "$LOG_DIR/${TEST_NAME}.err" \
@@ -212,7 +212,7 @@ else
         for TEST_NAME in $INDEPENDENT_TEST_LIST; do
             JOB_NAME="tt_${USER}_${TEST_NAME}"
             
-            bsub -gpu "num=1" -R "rusage[ngpus=1, cpu=8, mem=128GB]" \
+            bsub -gpu "num=1" -R "rusage[cpu=8, mem=32GB]" \
                  -J "$JOB_NAME" \
                  -o "$LOG_DIR/${TEST_NAME}.log" \
                  -e "$LOG_DIR/${TEST_NAME}.err" \
