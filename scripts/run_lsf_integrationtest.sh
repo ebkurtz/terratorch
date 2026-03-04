@@ -133,7 +133,7 @@ if [ -n "$MODELS_FIT_TEST" ]; then
     echo "Submitting test_models_fit (required prerequisite for dependent tests)..." >&2
     JOB_NAME="tt_${USER}_${MODELS_FIT_TEST}"
     
-    MODELS_FIT_JOB_ID=$(bsub -gpu "num=1" -R "rusage[cpu=8, mem=32GB]" \
+    MODELS_FIT_JOB_ID=$(bsub -gpu "num=1:mode=exclusive_process" -R "rusage[cpu=8, mem=32GB]" \
          -J "$JOB_NAME" \
          -o "$LOG_DIR/${MODELS_FIT_TEST}.log" \
          -e "$LOG_DIR/${MODELS_FIT_TEST}.err" \
