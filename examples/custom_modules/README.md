@@ -63,3 +63,13 @@ terratorch fit -c ./config.yaml
 - `model.init_args.model_args.backbone: HelloGeoModule`
 
 This tells TerraTorch to import your package and resolve `HelloGeoModule` from the backbone registry.
+
+## Use TERRATORCH_CUSTOM_MODULE_PATH environment variable to specify an alternative path to your custom modules.
+
+To set a different path for your custom modules, you can use the `TERRATORCH_CUSTOM_MODULE_PATH` environment variable. For example:
+
+```
+ os.environ["TERRATORCH_CUSTOM_MODULE_PATH"] = "examples/custom_modules_alternative/custom_modules
+ terratorch fit -c "./config_set_custom_modules_with_env_var.yaml"
+ ```
+
