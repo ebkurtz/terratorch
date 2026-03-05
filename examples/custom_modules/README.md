@@ -70,6 +70,6 @@ To set a different path for your custom modules, you can use the `TERRATORCH_CUS
 
 ```
  os.environ["TERRATORCH_CUSTOM_MODULE_PATH"] = "examples/custom_modules_alternative/custom_modules
- terratorch fit -c "./config_set_custom_modules_with_env_var.yaml"
+ terratorch fit -c "./config.yaml"
  ```
 
