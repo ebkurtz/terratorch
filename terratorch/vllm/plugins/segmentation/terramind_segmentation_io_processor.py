@@ -54,7 +54,7 @@ class TerramindSegmentationIOProcessor(IOProcessor):
     """
 
     # The IO Processor plugin inerface requires the renderer argument after vLLM 0.16.0.
-    # Support for vLLM <= v0.16.0 is deprecated and will be removed in Terratorch v0.16.0.
+    # Support for vLLM <= v0.16.0 is deprecated and will be removed in TerraTorch v1.6.0.
     @overload
     def __init__(self, vllm_config: VllmConfig, renderer: BaseRenderer) -> None: ...
 
@@ -66,7 +66,7 @@ class TerramindSegmentationIOProcessor(IOProcessor):
         if renderer is None:
             logger.warning(
                 "You are using a version of vLLM <= v0.16.0 that relies on the old IO Processor plugin interface. "
-                "Support for vLLM <= v0.16.0 will be removed in Terratorch v0.16.0."
+                "Support for vLLM <= v0.16.0 will be removed in TerraTorch v1.6.0."
             )
             super().__init__(vllm_config)
         else:
@@ -135,7 +135,7 @@ class TerramindSegmentationIOProcessor(IOProcessor):
     def parse_request(self, request: Any) -> IOProcessorInput:
         logger.warning(
             "You are using a version of vLLM <= v0.16 that relies on the old IO Processor plugin interface. "
-            "Support for vLLM <= v0.16 will be removed in Terratorch v0.16.0."
+            "Support for vLLM <= v0.16 will be removed in TerraTorch v1.6.0."
         )
         return self.parse_data(request)
 
