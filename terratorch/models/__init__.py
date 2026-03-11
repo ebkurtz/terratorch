@@ -4,6 +4,7 @@
 import logging
 
 import terratorch.models.necks  # register necks  # noqa: F401
+import terratorch.models.terracodec
 from terratorch.models.clay1_5_model_factory import Clay1_5ModelFactory
 from terratorch.models.clay_model_factory import ClayModelFactory
 from terratorch.models.encoder_decoder_factory import EncoderDecoderFactory

@@ -1,13 +1,20 @@
 from typing import Union
+import warnings
 from terratorch.registry import FULL_MODEL_REGISTRY
 
-from terracodec.models import (
-    terracodec_v1_fp_s2l2a as _terracodec_v1_fp_s2l2a,
-    terracodec_v1_elic_s2l2a as _terracodec_v1_elic_s2l2a,
-    terracodec_v1_tt_s2l2a as _terracodec_v1_tt_s2l2a,
-    terracodec_v1_tt_s2l1c as _terracodec_v1_tt_s2l1c,
-    flextec_v1_s2l2a as _flextec_v1_s2l2a,
-)
+try:
+    from terracodec import (
+        terracodec_v1_fp_s2l2a as _terracodec_v1_fp_s2l2a,
+        terracodec_v1_elic_s2l2a as _terracodec_v1_elic_s2l2a,
+        terracodec_v1_tt_s2l2a as _terracodec_v1_tt_s2l2a,
+        terracodec_v1_tt_s2l1c as _terracodec_v1_tt_s2l1c,
+        flextec_v1_s2l2a as _flextec_v1_s2l2a,)
+    terracodec_available = True
+    import_error = None
+
+except Exception as e:
+    terracodec_available = False
+    import_error = e
 
 __all__ = [
     "terracodec_v1_fp_s2l2a",
@@ -26,6 +33,10 @@ def terracodec_v1_fp_s2l2a(
     **kwargs,
 ):
     """TerraCodec 1.0 FactorizedPrior model for Sentinel-2 L2A data."""
+    if not terracodec_available:
+        warnings.warn(f"Cannot import TerraCodec model. "
+                      f"\nMake sure to install `pip install terracodec` first.")
+        raise import_error
     return _terracodec_v1_fp_s2l2a(
         compression=compression, image_size=image_size, mode=mode, **kwargs
     )
@@ -39,6 +50,10 @@ def terracodec_v1_elic_s2l2a(
     **kwargs,
 ):
     """TerraCodec 1.0 ELIC model for Sentinel-2 L2A data."""
+    if not terracodec_available:
+        warnings.warn(f"Cannot import TerraCodec model. "
+                      f"\nMake sure to install `pip install terracodec` first.")
+        raise import_error
     return _terracodec_v1_elic_s2l2a(
         compression=compression, image_size=image_size, mode=mode, **kwargs
     )
@@ -52,6 +67,10 @@ def terracodec_v1_tt_s2l2a(
     **kwargs,
 ):
     """TerraCodec 1.0 Temporal Transformer model for Sentinel-2 L2A data."""
+    if not terracodec_available:
+        warnings.warn(f"Cannot import TerraCodec model. "
+                      f"\nMake sure to install `pip install terracodec` first.")
+        raise import_error
     return _terracodec_v1_tt_s2l2a(
         compression=compression, image_size=image_size, mode=mode, **kwargs
     )
@@ -65,6 +84,10 @@ def terracodec_v1_tt_s2l1c(
     **kwargs,
 ):
     """TerraCodec 1.0 Temporal Transformer model for Sentinel-2 L1C data."""
+    if not terracodec_available:
+        warnings.warn(f"Cannot import TerraCodec model. "
+                      f"\nMake sure to install `pip install terracodec` first.")
+        raise import_error
     return _terracodec_v1_tt_s2l1c(
         compression=compression, image_size=image_size, mode=mode, **kwargs
     )
@@ -79,6 +102,10 @@ def flextec_v1_s2l2a(
     **kwargs,
 ):
     """TerraCodec 1.0 FlexTEC model for Sentinel-2 L2A data."""
+    if not terracodec_available:
+        warnings.warn(f"Cannot import TerraCodec model. "
+                      f"\nMake sure to install `pip install terracodec` first.")
+        raise import_error
     return _flextec_v1_s2l2a(
         compression=compression,
         image_size=image_size,
