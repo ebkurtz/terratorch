@@ -134,6 +134,10 @@ peft = [
   "peft>=0.15.0"
 ]
 
+terracodec = [
+    "terracodec"
+]
+
 geobenchv2 = [
   "geobenchv2==0.9",
   "mlflow",

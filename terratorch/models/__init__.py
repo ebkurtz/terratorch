@@ -23,6 +23,11 @@ except ImportError:
     logging.getLogger("terratorch").debug("granitewxc not installed, please use pip install granitewxc")
     granitewcx = False
 
+try:
+    import terratorch.models.terracodec
+except ImportError:
+    pass
+
 __all__ = (
     "Clay1_5ModelFactory",
     "ClayModelFactory",
